@@ -1,0 +1,106 @@
+name: scrap
+
+on:
+    push:
+        branches:
+            - master
+    schedule:
+        - cron: '*/10 * * * *'
+
+jobs:
+    check-update:
+        name: Check and update github repository and AUR mirror
+        runs-on: ubuntu-latest
+        container:
+            image: archlinux:latest
+            env:
+                REPOSITORY: ${{ github.repository }}
+                ADDRESS: 'https://www.thefanclub.co.za/overgrive'
+        steps:
+            # - uses: actions/checkout@master # does not clone repository, only fetch files (no .git folder)
+            - name: Clone repository
+              run: |
+                pacman -Sy --noconfirm git
+                git config --global user.name "Pedro Henrique"
+                git config --global user.email "pedro00dk@gmail.com"
+                git clone "https://github.com/${REPOSITORY}"
+ 
+            - name: Fetch current versions
+              run: |
+                cd $(echo $REPOSITORY | cut -d / -f2)
+                curl --silent $ADDRESS > website.html
+                REPOSITORY_VERSION=$(
+                    cat ./PKGBUILD |
+                    grep 'pkgver' |
+                    grep -o -E '[0-9]+\.[0-9]+\.[0-9]+'
+                )
+                AVAILABLE_VERSION=$(
+                    cat ./website.html |
+                    grep -B1 'Download Version' |
+                    grep -o -E '[0-9]+\.[0-9]+\.[0-9]+'
+                )
+                echo "repo version: $REPOSITORY_VERSION"
+                echo "site version: $AVAILABLE_VERSION"
+                echo ::set-env name=REPOSITORY_VERSION::"${REPOSITORY_VERSION}"
+                echo ::set-env name=AVAILABLE_VERSION::"${AVAILABLE_VERSION}"
+
+                if [ "$REPOSITORY_VERSION" = "$AVAILABLE_VERSION" ]
+                then
+                    echo 'Repository and available versions are the same.'
+                fi
+                
+            - name: Update source files
+              run: |
+                if [ "$REPOSITORY_VERSION" = "$AVAILABLE_VERSION" ]
+                then
+                    echo 'Same versions. Skipping step'
+                    exit 0
+                fi
+                cd $(echo $REPOSITORY | cut -d / -f2)
+                SOURCE=$(
+                    cat website.html |
+                    grep -oi -E '<a [^>]+>[^>]*</a>' |
+                    grep 'Arch' |
+                    grep -Eo 'href="[^\"]+"' |
+                    grep -Eo 'https://[^&]+'
+                )
+                MD5SUM=$(curl --silent $SOURCE | md5sum | cut -f 1 -d ' ')
+
+                echo "source: $SOURCE"
+                echo "md5sum: $MD5SUM"
+
+                cat ./PKGBUILD |
+                sed -E "s/pkgver=.*$/pkgver=${AVAILABLE_VERSION}/" |
+                sed -E "s/pkgrel=.*$/pkgrel=0/" |
+                sed -E "s%source=.*$%source=('overgrive.tar.xz::${SOURCE}')%" |
+                sed -E "s/md5sums=.*$/md5sums=('${MD5SUM}')/" |
+                tee ./PKGBUILD
+
+                cat ./.SRCINFO |
+                sed -E "s/pkgver =.*$/pkgver = ${AVAILABLE_VERSION}/" |
+                sed -E "s/pkgrel =.*$/pkgrel = 0/" |
+                sed -E "s%source =.*$%source = ${SOURCE}%" |
+                sed -E "s/md5sums =.*$/md5sums = ${MD5SUM}/" |
+                tee ./.SRCINFO
+
+                echo -e '\nPKGBUILD'
+                cat ./PKGBUILD
+                
+                echo -e '\n.SRCINFO'
+                cat ./.SRCINFO
+
+            - name: Update repository
+              env:
+                ACTOR: ${{ github.actor }}
+                TOKEN: ${{ github.token }}
+              run: |
+                if [ "$REPOSITORY_VERSION" = "$AVAILABLE_VERSION" ]
+                then
+                    echo 'Same versions. Skipping step'
+                    exit 0
+                fi
+                cd $(echo $REPOSITORY | cut -d / -f2)
+                git add ./PKGBUILD ./.SRCINFO
+                git status
+                git commit -m "GA AUTO-UPDATE: Version $AVAILABLE_VERSION"
+                git push "https://${ACTOR}:${TOKEN}@github.com/${REPOSITORY}"
