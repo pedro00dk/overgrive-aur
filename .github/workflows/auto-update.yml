@@ -1,4 +1,4 @@
-name: scrap
+name: Auto-update
 
 on:
     push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
     check-update:
-        name: Check and update github repository and AUR mirror
+        name: Check version and update github repository and AUR mirror
         runs-on: ubuntu-latest
         container:
             image: archlinux:latest
@@ -41,6 +41,7 @@ jobs:
                 )
                 echo "repo version: $REPOSITORY_VERSION"
                 echo "site version: $AVAILABLE_VERSION"
+                
                 echo ::set-env name=REPOSITORY_VERSION::"${REPOSITORY_VERSION}"
                 echo ::set-env name=AVAILABLE_VERSION::"${AVAILABLE_VERSION}"
 
@@ -79,7 +80,7 @@ jobs:
                 cat ./.SRCINFO |
                 sed -E "s/pkgver =.*$/pkgver = ${AVAILABLE_VERSION}/" |
                 sed -E "s/pkgrel =.*$/pkgrel = 0/" |
-                sed -E "s%source =.*$%source = ${SOURCE}%" |
+                sed -E "s%source =.*$%source = overgrive.tar.xz::${SOURCE}%" |
                 sed -E "s/md5sums =.*$/md5sums = ${MD5SUM}/" |
                 tee ./.SRCINFO
 
