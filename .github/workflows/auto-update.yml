@@ -20,7 +20,7 @@ jobs:
             # - uses: actions/checkout@master # does not clone repository, only fetch files (no .git folder)
             - name: Clone repository
               run: |
-                pacman -Sy --noconfirm git
+                pacman -Sy --noconfirm git openssh
                 git config --global user.name "Pedro Henrique"
                 git config --global user.email "pedro00dk@gmail.com"
                 git clone "https://github.com/${REPOSITORY}"
@@ -90,10 +90,11 @@ jobs:
                 echo -e '\n.SRCINFO'
                 cat ./.SRCINFO
 
-            - name: Update repository
+            - name: Update repository and AUR mirror
               env:
                 ACTOR: ${{ github.actor }}
                 TOKEN: ${{ github.token }}
+                AUR_KEY: ${{ secrets.AUR_KEY }}
               run: |
                 if [ "$REPOSITORY_VERSION" = "$AVAILABLE_VERSION" ]
                 then
@@ -105,3 +106,13 @@ jobs:
                 git status
                 git commit -m "GA AUTO-UPDATE: Version $AVAILABLE_VERSION"
                 git push "https://${ACTOR}:${TOKEN}@github.com/${REPOSITORY}"
+
+                echo "${AUR_SSH_KEY}" > ~/.ssh/id_rsa
+                echo "${AUR_SSH_KEY_PUB}" > ~/.ssh/id_rsa.pub
+                echo "${AUR_KNOWN_HOSTS}" > ~/.ssh/known_hosts
+                git remote add aur ssh://aur@aur.archlinux.org/overgrive.git
+
+                # AUR does not support subdirectories (.github folder)
+                git filter-branch --tree-filter 'rm -r ./.github/ || true' --prune-empty HEAD
+
+                git push --force aur
