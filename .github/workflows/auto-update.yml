@@ -107,6 +107,7 @@ jobs:
                 git commit -m "GA AUTO-UPDATE: Version $AVAILABLE_VERSION"
                 git push "https://${ACTOR}:${TOKEN}@github.com/${REPOSITORY}"
 
+                mkdir ~/.ssh/
                 echo "${AUR_SSH_KEY}" > ~/.ssh/id_rsa
                 echo "${AUR_SSH_KEY_PUB}" > ~/.ssh/id_rsa.pub
                 echo "${AUR_KNOWN_HOSTS}" > ~/.ssh/known_hosts
