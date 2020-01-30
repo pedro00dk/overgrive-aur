@@ -5,7 +5,7 @@ on:
         branches:
             - master
     schedule:
-        - cron: '*/10 * * * *'
+        - cron: '* */12 * * *'
 
 jobs:
     check-update:
@@ -77,6 +77,10 @@ jobs:
                 sed -E "s/md5sums=.*$/md5sums=('${MD5SUM}')/" |
                 tee ./PKGBUILD
 
+                ### TODO ###
+                # Find a way to run makepkg as root
+                # makepkg --printsrcinfo > ./.SRCINFO
+                
                 cat ./.SRCINFO |
                 sed -E "s/pkgver =.*$/pkgver = ${AVAILABLE_VERSION}/" |
                 sed -E "s/pkgrel =.*$/pkgrel = 0/" |
@@ -89,6 +93,10 @@ jobs:
                 
                 echo -e '\n.SRCINFO'
                 cat ./.SRCINFO
+                
+                ### TODO ###
+                # Implement package test
+                # makepkg --force --syncdeps --install --clean
 
             - name: Update repository and AUR mirror
               env:
@@ -116,4 +124,9 @@ jobs:
                 # AUR does not support subdirectories (.github folder)
                 git filter-branch --tree-filter 'rm -r ./.github/ || true' --prune-empty HEAD
 
-                git push --force aur
+                ### TODO ###
+                # Host key verification failed.
+                # fatal: Could not read from remote repository.
+                # Please make sure you have the correct access rights
+                # and the repository exists.
+                # git push --force aur
