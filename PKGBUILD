@@ -1,6 +1,6 @@
 # Maintainer: Pedro Henrique <pedro00dk@gmail.com>
 pkgname=overgrive
-pkgver=3.3.8
+pkgver=3.3.9
 pkgrel=0
 pkgdesc='A complete Google Drive™ desktop client solution for Linux'
 arch=('x86_64')
@@ -16,8 +16,8 @@ conflicts=('overgrive')
 install='overgrive.install'
 changelog=
 
-source=('overgrive.tar.xz::https://www.thefanclub.co.za/sites/default/files/public/overgrive/overgrive-3.3.8-0-any.pkg.tar.xz')
-md5sums=('b753b58eeebe63a9739fe46317af0f48')
+source=('overgrive.tar.xz::https://www.thefanclub.co.za/sites/default/files/public/overgrive/overgrive-3.3.9-0-any.pkg.tar.xz')
+md5sums=('0979456bf0568edfb513928550381b6b')
 
 prepare() {
     # chmod 0755 ./opt/thefanclub/overgrive/__pycache__/overgrive.cpython-38.pyc
